@@ -4,12 +4,10 @@
 
 // global parameters
 #define ARRAY_SIZE 400
-#define NTHREADS 8
+#define NTHREADS 32
 // global variables
 int * gArray;
 int globalSum = 0;
-
-pthread_mutex_t lock;
 
 void * sumArray(void * ip)
 {
@@ -24,11 +22,8 @@ void * sumArray(void * ip)
   int j;
   for ( j = startIndex; j < endIndex; j++ ) {
      sumSlice += gArray[j];
+     globalSum += gArray[j]; // WARNING! globalSum is shared but being modified simultaenously! Race condition!
   }
-  pthread_mutex_lock(&lock);
-  globalSum += sumSlice;
-  pthread_mutex_unlock(&lock);
-
   printf("Hi.  I'm thread %d, sumSlice = %d, avg Value = %5.1f\n", *i, sumSlice, (float) sumSlice / (float) threadArraySliceSize );
 
   pthread_exit(NULL);
@@ -52,7 +47,6 @@ int main()
 
   int i, vals[NTHREADS];
   pthread_t threads[NTHREADS];
-  pthread_mutex_init(&lock,NULL);
   void * retval;
   gArray = malloc(ARRAY_SIZE*sizeof(int));  // already declared with global scope (see above), here we allocate space for array
 
@@ -81,7 +75,6 @@ int main()
   printf("globalSum: %d, correct answer: %d\n",globalSum,correctSum);
 
   free(gArray);
-  pthread_mutex_destroy(&lock);
   pthread_exit(NULL);
 
 }
